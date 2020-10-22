@@ -243,7 +243,6 @@ class Encryption {
         EventUpdate(
           eventType: event.type,
           content: event.toJson(),
-          roomID: event.roomId,
           type: updateType,
           sortOrder: event.sortOrder,
         ),

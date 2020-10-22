@@ -209,7 +209,7 @@ class Timeline {
 
   void _handleEventUpdate(EventUpdate eventUpdate) async {
     try {
-      if (eventUpdate.roomID != room.id) return;
+      if (eventUpdate.content['room_id'] != room.id) return;
 
       if (eventUpdate.type == EventUpdateType.timeline ||
           eventUpdate.type == EventUpdateType.history) {

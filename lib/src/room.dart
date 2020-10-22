@@ -1184,12 +1184,12 @@ class Room {
         'type': EventTypes.RoomMember,
         'content': resp,
         'state_key': mxID,
+        'room_id': id,
       };
       await client.database.storeEventUpdate(
         client.id,
         EventUpdate(
             content: content,
-            roomID: id,
             type: EventUpdateType.state,
             eventType: EventTypes.RoomMember,
             sortOrder: 0.0),

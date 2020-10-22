@@ -41,7 +41,6 @@ void main() {
       // store a simple update
       var update = EventUpdate(
         type: EventUpdateType.timeline,
-        roomID: room.id,
         eventType: 'm.room.message',
         content: {
           'type': 'm.room.message',
@@ -49,6 +48,7 @@ void main() {
           'content': {'blah': 'blubb'},
           'event_id': '\$event-1',
           'sender': '@blah:blubb',
+          'room_id': room.id,
         },
         sortOrder: 0.0,
       );
@@ -59,7 +59,6 @@ void main() {
       // insert a transaction id
       update = EventUpdate(
         type: EventUpdateType.timeline,
-        roomID: room.id,
         eventType: 'm.room.message',
         content: {
           'type': 'm.room.message',
@@ -68,6 +67,7 @@ void main() {
           'event_id': 'transaction-1',
           'sender': '@blah:blubb',
           'status': 0,
+          'room_id': room.id,
         },
         sortOrder: 0.0,
       );
@@ -76,7 +76,6 @@ void main() {
       expect(event.eventId, 'transaction-1');
       update = EventUpdate(
         type: EventUpdateType.timeline,
-        roomID: room.id,
         eventType: 'm.room.message',
         content: {
           'type': 'm.room.message',
@@ -88,6 +87,7 @@ void main() {
             'transaction_id': 'transaction-1',
           },
           'status': 1,
+          'room_id': room.id,
         },
         sortOrder: 0.0,
       );
@@ -99,7 +99,6 @@ void main() {
       // insert a transaction id if the event id for it already exists
       update = EventUpdate(
         type: EventUpdateType.timeline,
-        roomID: room.id,
         eventType: 'm.room.message',
         content: {
           'type': 'm.room.message',
@@ -108,6 +107,7 @@ void main() {
           'event_id': '\$event-3',
           'sender': '@blah:blubb',
           'status': 0,
+          'room_id': room.id,
         },
         sortOrder: 0.0,
       );
@@ -116,7 +116,6 @@ void main() {
       expect(event.eventId, '\$event-3');
       update = EventUpdate(
         type: EventUpdateType.timeline,
-        roomID: room.id,
         eventType: 'm.room.message',
         content: {
           'type': 'm.room.message',
@@ -128,6 +127,7 @@ void main() {
           'unsigned': {
             'transaction_id': 'transaction-2',
           },
+          'room_id': room.id,
         },
         sortOrder: 0.0,
       );
@@ -141,7 +141,6 @@ void main() {
       // insert transaction id and not update status
       update = EventUpdate(
         type: EventUpdateType.timeline,
-        roomID: room.id,
         eventType: 'm.room.message',
         content: {
           'type': 'm.room.message',
@@ -150,6 +149,7 @@ void main() {
           'event_id': '\$event-4',
           'sender': '@blah:blubb',
           'status': 2,
+          'room_id': room.id,
         },
         sortOrder: 0.0,
       );
@@ -158,7 +158,6 @@ void main() {
       expect(event.eventId, '\$event-4');
       update = EventUpdate(
         type: EventUpdateType.timeline,
-        roomID: room.id,
         eventType: 'm.room.message',
         content: {
           'type': 'm.room.message',
@@ -170,6 +169,7 @@ void main() {
           'unsigned': {
             'transaction_id': 'transaction-3',
           },
+          'room_id': room.id,
         },
         sortOrder: 0.0,
       );

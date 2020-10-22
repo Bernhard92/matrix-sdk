@@ -1021,7 +1021,6 @@ class Client extends MatrixApi {
           : 0.0;
       var update = EventUpdate(
         eventType: event['type'],
-        roomID: roomID,
         type: type,
         content: event,
         sortOrder: sortOrder,
@@ -1131,7 +1130,7 @@ class Client extends MatrixApi {
   void _updateRoomsByEventUpdate(EventUpdate eventUpdate) {
     if (eventUpdate.type == EventUpdateType.history) return;
 
-    final room = getRoomById(eventUpdate.roomID);
+    final room = getRoomById(eventUpdate.content['room_id']);
     if (room == null) return;
 
     switch (eventUpdate.type) {

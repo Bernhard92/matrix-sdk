@@ -53,7 +53,6 @@ void main() {
 
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -61,12 +60,12 @@ void main() {
             'sender': '@alice:example.com',
             'status': 2,
             'event_id': '2',
-            'origin_server_ts': testTimeStamp - 1000
+            'origin_server_ts': testTimeStamp - 1000,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -74,7 +73,8 @@ void main() {
             'sender': '@alice:example.com',
             'status': 2,
             'event_id': '1',
-            'origin_server_ts': testTimeStamp
+            'origin_server_ts': testTimeStamp,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
 
@@ -115,7 +115,6 @@ void main() {
 
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.redaction',
           content: {
             'type': 'm.room.redaction',
@@ -123,7 +122,8 @@ void main() {
             'sender': '@alice:example.com',
             'redacts': '2',
             'event_id': '3',
-            'origin_server_ts': testTimeStamp + 1000
+            'origin_server_ts': testTimeStamp + 1000,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
 
@@ -150,7 +150,6 @@ void main() {
 
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -159,7 +158,8 @@ void main() {
             'status': 2,
             'event_id': eventId,
             'unsigned': {'transaction_id': '1234'},
-            'origin_server_ts': DateTime.now().millisecondsSinceEpoch
+            'origin_server_ts': DateTime.now().millisecondsSinceEpoch,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
 
@@ -175,7 +175,6 @@ void main() {
     test('Send message with error', () async {
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -183,7 +182,8 @@ void main() {
             'sender': '@alice:example.com',
             'status': 0,
             'event_id': 'abc',
-            'origin_server_ts': testTimeStamp
+            'origin_server_ts': testTimeStamp,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -222,7 +222,6 @@ void main() {
       timeline.events.clear();
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -232,6 +231,7 @@ void main() {
             'event_id': 'new-test-event',
             'origin_server_ts': testTimeStamp,
             'unsigned': {'transaction_id': 'newresend'},
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -279,7 +279,6 @@ void main() {
       timeline.events.clear();
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -287,12 +286,12 @@ void main() {
             'sender': '@alice:example.com',
             'status': -1,
             'event_id': 'abc',
-            'origin_server_ts': testTimeStamp
+            'origin_server_ts': testTimeStamp,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -300,7 +299,8 @@ void main() {
             'sender': '@alice:example.com',
             'status': 2,
             'event_id': 'def',
-            'origin_server_ts': testTimeStamp + 5
+            'origin_server_ts': testTimeStamp + 5,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -312,7 +312,6 @@ void main() {
       timeline.events.clear();
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -320,7 +319,8 @@ void main() {
             'sender': '@alice:example.com',
             'status': 0,
             'event_id': 'will-fail',
-            'origin_server_ts': testTimeStamp
+            'origin_server_ts': testTimeStamp,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -328,7 +328,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -336,7 +335,8 @@ void main() {
             'sender': '@alice:example.com',
             'status': -1,
             'event_id': 'will-fail',
-            'origin_server_ts': testTimeStamp
+            'origin_server_ts': testTimeStamp,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -348,7 +348,6 @@ void main() {
       timeline.events.clear();
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -356,7 +355,8 @@ void main() {
             'sender': '@alice:example.com',
             'status': 0,
             'event_id': 'transaction',
-            'origin_server_ts': testTimeStamp
+            'origin_server_ts': testTimeStamp,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -364,7 +364,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -373,7 +372,8 @@ void main() {
             'status': 1,
             'event_id': '\$event',
             'origin_server_ts': testTimeStamp,
-            'unsigned': {'transaction_id': 'transaction'}
+            'unsigned': {'transaction_id': 'transaction'},
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -381,7 +381,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -390,7 +389,8 @@ void main() {
             'status': 2,
             'event_id': '\$event',
             'origin_server_ts': testTimeStamp,
-            'unsigned': {'transaction_id': 'transaction'}
+            'unsigned': {'transaction_id': 'transaction'},
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -402,7 +402,6 @@ void main() {
       timeline.events.clear();
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -414,6 +413,7 @@ void main() {
               MessageSendingStatusKey: 0,
               'transaction_id': 'transaction',
             },
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -421,7 +421,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -433,6 +432,7 @@ void main() {
               'transaction_id': 'transaction',
               MessageSendingStatusKey: 2,
             },
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -440,7 +440,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -452,6 +451,7 @@ void main() {
               'transaction_id': 'transaction',
               MessageSendingStatusKey: 1,
             },
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -462,7 +462,6 @@ void main() {
       timeline.events.clear();
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -470,7 +469,8 @@ void main() {
             'sender': '@alice:example.com',
             'status': 0,
             'event_id': 'transaction',
-            'origin_server_ts': testTimeStamp
+            'origin_server_ts': testTimeStamp,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -478,7 +478,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -487,6 +486,7 @@ void main() {
             'status': -1,
             'origin_server_ts': testTimeStamp,
             'unsigned': {'transaction_id': 'transaction'},
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -494,7 +494,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -504,6 +503,7 @@ void main() {
             'event_id': '\$event',
             'origin_server_ts': testTimeStamp,
             'unsigned': {'transaction_id': 'transaction'},
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -514,7 +514,6 @@ void main() {
       timeline.events.clear();
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -522,7 +521,8 @@ void main() {
             'sender': '@alice:example.com',
             'status': 0,
             'event_id': 'transaction',
-            'origin_server_ts': testTimeStamp
+            'origin_server_ts': testTimeStamp,
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -530,7 +530,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -540,6 +539,7 @@ void main() {
             'event_id': '\$event',
             'origin_server_ts': testTimeStamp,
             'unsigned': {'transaction_id': 'transaction'},
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));
@@ -547,7 +547,6 @@ void main() {
       expect(timeline.events.length, 1);
       client.onEvent.add(EventUpdate(
           type: EventUpdateType.timeline,
-          roomID: roomID,
           eventType: 'm.room.message',
           content: {
             'type': 'm.room.message',
@@ -556,6 +555,7 @@ void main() {
             'status': -1,
             'origin_server_ts': testTimeStamp,
             'unsigned': {'transaction_id': 'transaction'},
+            'room_id': roomID,
           },
           sortOrder: room.newSortOrder));
       await Future.delayed(Duration(milliseconds: 50));

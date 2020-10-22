@@ -432,7 +432,7 @@ class Database extends _$Database {
     if (eventUpdate.type == sdk.EventUpdateType.ephemeral) return;
     final eventContent = eventUpdate.content;
     final type = eventUpdate.type;
-    final chatId = eventUpdate.roomID;
+    final chatId = eventUpdate.content['room_id'];
 
     // Get the state_key for state events
     String stateKey;
@@ -570,8 +570,8 @@ class Database extends _$Database {
   }
 
   Future<bool> redactMessage(int clientId, sdk.EventUpdate eventUpdate) async {
-    final events = await getEvent(
-            clientId, eventUpdate.content['redacts'], eventUpdate.roomID)
+    final events = await getEvent(clientId, eventUpdate.content['redacts'],
+            eventUpdate.content['room_id'])
         .get();
     var success = false;
     for (final dbEvent in events) {
@@ -583,7 +583,7 @@ class Database extends _$Database {
         json.encode(event.prevContent ?? ''),
         clientId,
         event.eventId,
-        eventUpdate.roomID,
+        eventUpdate.content['room_id'],
       );
       final changes2 = await updateEvent(
         json.encode(event.unsigned ?? ''),
@@ -591,7 +591,7 @@ class Database extends _$Database {
         json.encode(event.prevContent ?? ''),
         clientId,
         event.eventId,
-        eventUpdate.roomID,
+        eventUpdate.content['room_id'],
       );
       if (changes1 == 1 && changes2 == 1) success = true;
     }

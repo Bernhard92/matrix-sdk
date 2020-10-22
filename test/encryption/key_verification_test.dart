@@ -52,10 +52,10 @@ EventUpdate getLastSentEvent(KeyVerification req) {
       'content': content,
       'origin_server_ts': DateTime.now().millisecondsSinceEpoch,
       'sender': req.client.userID,
+      'room_id': req.room.id,
     },
     eventType: type,
     type: EventUpdateType.timeline,
-    roomID: req.room.id,
   );
 }
 
@@ -444,10 +444,10 @@ void main() {
           },
           'origin_server_ts': DateTime.now().millisecondsSinceEpoch,
           'sender': client2.userID,
+          'room_id': req2.room.id,
         },
         eventType: 'm.key.verification.ready',
         type: EventUpdateType.timeline,
-        roomID: req2.room.id,
       ));
       expect(req2.state, KeyVerificationState.error);
 

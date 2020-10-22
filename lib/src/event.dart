@@ -315,13 +315,13 @@ class Event extends MatrixEvent {
       await room.client.database?.removeEvent(room.client.id, eventId, room.id);
 
       room.client.onEvent.add(EventUpdate(
-          roomID: room.id,
           type: EventUpdateType.timeline,
           eventType: type,
           content: {
             'event_id': eventId,
             'status': -2,
-            'content': {'body': 'Removed...'}
+            'content': {'body': 'Removed...'},
+            'room_id': room.id,
           },
           sortOrder: sortOrder));
       return true;

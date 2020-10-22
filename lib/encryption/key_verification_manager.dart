@@ -119,8 +119,8 @@ class KeyVerificationManager {
           .contains(type)) {
         return; // we can only start on these
       }
-      final room = client.getRoomById(update.roomID) ??
-          Room(id: update.roomID, client: client);
+      final room = client.getRoomById(update.content['room_id']) ??
+          Room(id: update.content['room_id'], client: client);
       final newKeyRequest = KeyVerification(
           encryption: encryption, userId: event['sender'], room: room);
       await newKeyRequest.handlePayload(
