@@ -5,6 +5,7 @@ import 'package:moor/moor.dart';
 import 'package:olm/olm.dart' as olm;
 
 import '../../famedlysdk.dart' as sdk;
+import '../../famedlysdk.dart';
 import '../../matrix_api.dart' as api;
 import '../../matrix_api.dart';
 import '../client.dart';
@@ -430,7 +431,7 @@ class Database extends _$Database {
   /// [transaction].
   Future<void> storeEventUpdate(
       int clientId, sdk.EventUpdate eventUpdate) async {
-    if (eventUpdate.type == 'ephemeral') return;
+    if (eventUpdate.type == EventUpdateType.ephemeral) return;
     final eventContent = eventUpdate.content;
     final type = eventUpdate.type;
     final chatId = eventUpdate.roomID;
@@ -445,7 +446,7 @@ class Database extends _$Database {
       await redactMessage(clientId, eventUpdate);
     }
 
-    if (type == 'timeline' || type == 'history') {
+    if (type == EventUpdateType.timeline || type == EventUpdateType.history) {
       // calculate the status
       var status = 2;
       if (eventContent['unsigned'] is Map<String, dynamic> &&
@@ -493,7 +494,7 @@ class Database extends _$Database {
       }
       if (storeNewEvent) {
         DbEvent oldEvent;
-        if (type == 'history') {
+        if (type == EventUpdateType.history) {
           final allOldEvents =
               await getEvent(clientId, eventContent['event_id'], chatId).get();
           if (allOldEvents.isNotEmpty) {
@@ -527,9 +528,9 @@ class Database extends _$Database {
       }
     }
 
-    if (type == 'history') return;
+    if (type == EventUpdateType.history) return;
 
-    if (type != 'account_data' &&
+    if (type != EventUpdateType.accountData &&
         ((stateKey is String) ||
             [EventTypes.Message, EventTypes.Sticker, EventTypes.Encrypted]
                 .contains(eventUpdate.eventType))) {
@@ -547,7 +548,7 @@ class Database extends _$Database {
         json.encode(eventContent['prev_content'] ?? ''),
         stateKey ?? '',
       );
-    } else if (type == 'account_data') {
+    } else if (type == EventUpdateType.accountData) {
       await storeRoomAccountData(
         clientId,
         eventContent['type'],
