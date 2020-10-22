@@ -1179,16 +1179,16 @@ class Room {
         room: this);
     states[mxID] = user;
     await client.database?.transaction(() async {
-      final content = <String, dynamic>{
-        'sender': mxID,
-        'type': EventTypes.RoomMember,
-        'content': resp,
-        'state_key': mxID,
-      };
       await client.database.storeEventUpdate(
         client.id,
         EventUpdate(
-            content: content,
+            event: Event(
+              senderId: mxID,
+              type: EventTypes.RoomMember,
+              content: resp,
+              stateKey: mxID,
+              room: this,
+            ),
             roomID: id,
             type: EventUpdateType.state,
             eventType: EventTypes.RoomMember,

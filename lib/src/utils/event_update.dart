@@ -44,13 +44,18 @@ class EventUpdate {
   final String eventType;
 
   // The json payload of the content of this event.
-  final Map<String, dynamic> content;
+  final BasicEvent event;
 
   // the order where to stort this event
   final double sortOrder;
 
-  EventUpdate(
-      {this.eventType, this.roomID, this.type, this.content, this.sortOrder});
+  EventUpdate({
+    this.eventType,
+    this.roomID,
+    this.type,
+    this.event,
+    this.sortOrder,
+  });
 
   Future<EventUpdate> decrypt(Room room, {bool store = false}) async {
     if (eventType != EventTypes.Encrypted || !room.client.encryptionEnabled) {
@@ -58,13 +63,13 @@ class EventUpdate {
     }
     try {
       var decrpytedEvent = await room.client.encryption.decryptRoomEvent(
-          room.id, Event.fromJson(content, room, sortOrder),
+          room.id, Event.fromJson(event.content, room, sortOrder),
           store: store, updateType: type);
       return EventUpdate(
         eventType: decrpytedEvent.type,
         roomID: roomID,
         type: type,
-        content: decrpytedEvent.toJson(),
+        event: decrpytedEvent,
         sortOrder: sortOrder,
       );
     } catch (e, s) {

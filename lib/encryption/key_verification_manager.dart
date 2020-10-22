@@ -85,28 +85,28 @@ class KeyVerificationManager {
   }
 
   Future<void> handleEventUpdate(EventUpdate update) async {
-    final event = update.content;
-    final type = event['type'].startsWith('m.key.verification.')
-        ? event['type']
-        : event['content']['msgtype'];
+    final event = update.event as MatrixEvent;
+    final type = event.type.startsWith('m.key.verification.')
+        ? event.type
+        : event.content['msgtype'];
     if (type == null ||
         !type.startsWith('m.key.verification.') ||
         client.verificationMethods.isEmpty) {
       return;
     }
     if (type == 'm.key.verification.request') {
-      event['content']['timestamp'] = event['origin_server_ts'];
+      event.content['timestamp'] = event.originServerTs;
     }
 
     final transactionId =
-        KeyVerification.getTransactionId(event['content']) ?? event['event_id'];
+        KeyVerification.getTransactionId(event.content) ?? event.eventId;
 
     if (_requests.containsKey(transactionId)) {
       final req = _requests[transactionId];
-      final otherDeviceId = event['content']['from_device'];
-      if (event['sender'] != client.userID) {
-        await req.handlePayload(type, event['content'], event['event_id']);
-      } else if (event['sender'] == client.userID &&
+      final otherDeviceId = event.content['from_device'];
+      if (event.senderId != client.userID) {
+        await req.handlePayload(type, event.content, event.eventId);
+      } else if (event.senderId == client.userID &&
           otherDeviceId != null &&
           otherDeviceId != client.deviceID) {
         // okay, another of our devices answered
@@ -114,7 +114,7 @@ class KeyVerificationManager {
         req.dispose();
         _requests.remove(transactionId);
       }
-    } else if (event['sender'] != client.userID) {
+    } else if (event.senderId != client.userID) {
       if (!['m.key.verification.request', 'm.key.verification.start']
           .contains(type)) {
         return; // we can only start on these
@@ -122,9 +122,8 @@ class KeyVerificationManager {
       final room = client.getRoomById(update.roomID) ??
           Room(id: update.roomID, client: client);
       final newKeyRequest = KeyVerification(
-          encryption: encryption, userId: event['sender'], room: room);
-      await newKeyRequest.handlePayload(
-          type, event['content'], event['event_id']);
+          encryption: encryption, userId: event.senderId, room: room);
+      await newKeyRequest.handlePayload(type, event.content, event.eventId);
       if (newKeyRequest.state != KeyVerificationState.askAccept) {
         // something went wrong, let's just dispose the request
         newKeyRequest.dispose();

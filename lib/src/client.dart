@@ -886,60 +886,43 @@ class Client extends MatrixApi {
       if (room is JoinedRoomUpdate) {
         if (room.state?.isNotEmpty ?? false) {
           // TODO: This method seems to be comperatively slow for some updates
-          await _handleRoomEvents(
-              id,
-              room.state.map((i) => i.toJson()).toList(),
-              EventUpdateType.state);
+          await _handleRoomEvents(id, room.state, EventUpdateType.state);
           handledEvents = true;
         }
         if (room.timeline?.events?.isNotEmpty ?? false) {
-          await _handleRoomEvents(
-              id,
-              room.timeline.events.map((i) => i.toJson()).toList(),
+          await _handleRoomEvents(id, room.timeline.events,
               sortAtTheEnd ? EventUpdateType.history : EventUpdateType.timeline,
               sortAtTheEnd: sortAtTheEnd);
           handledEvents = true;
         }
         if (room.ephemeral?.isNotEmpty ?? false) {
           // TODO: This method seems to be comperatively slow for some updates
-          await _handleEphemerals(
-              id, room.ephemeral.map((i) => i.toJson()).toList());
+          await _handleEphemerals(id, room.ephemeral);
         }
         if (room.accountData?.isNotEmpty ?? false) {
           await _handleRoomEvents(
-              id,
-              room.accountData.map((i) => i.toJson()).toList(),
-              EventUpdateType.accountData);
+              id, room.accountData, EventUpdateType.accountData);
         }
       }
       if (room is LeftRoomUpdate) {
         if (room.timeline?.events?.isNotEmpty ?? false) {
           await _handleRoomEvents(
-              id,
-              room.timeline.events.map((i) => i.toJson()).toList(),
-              EventUpdateType.timeline);
+              id, room.timeline.events, EventUpdateType.timeline);
           handledEvents = true;
         }
         if (room.accountData?.isNotEmpty ?? false) {
           await _handleRoomEvents(
-              id,
-              room.accountData.map((i) => i.toJson()).toList(),
-              EventUpdateType.accountData);
+              id, room.accountData, EventUpdateType.accountData);
         }
         if (room.state?.isNotEmpty ?? false) {
-          await _handleRoomEvents(
-              id,
-              room.state.map((i) => i.toJson()).toList(),
-              EventUpdateType.state);
+          await _handleRoomEvents(id, room.state, EventUpdateType.state);
           handledEvents = true;
         }
       }
       if (room is InvitedRoomUpdate &&
           (room.inviteState?.isNotEmpty ?? false)) {
         await _handleRoomEvents(
-            id,
-            room.inviteState.map((i) => i.toJson()).toList(),
-            EventUpdateType.inviteState);
+            id, room.inviteState, EventUpdateType.inviteState);
       }
       if (handledEvents && database != null && roomObj != null) {
         await roomObj.updateSortOrder();
@@ -947,24 +930,24 @@ class Client extends MatrixApi {
     }
   }
 
-  Future<void> _handleEphemerals(String id, List<dynamic> events) async {
+  Future<void> _handleEphemerals(String id, List<BasicEvent> events) async {
     for (num i = 0; i < events.length; i++) {
       await _handleEvent(events[i], id, EventUpdateType.ephemeral);
 
       // Receipt events are deltas between two states. We will create a
       // fake room account data event for this and store the difference
       // there.
-      if (events[i]['type'] == 'm.receipt') {
+      if (events[i].type == 'm.receipt') {
         var room = getRoomById(id);
         room ??= Room(id: id);
 
         var receiptStateContent =
             room.roomAccountData['m.receipt']?.content ?? {};
-        for (var eventEntry in events[i]['content'].entries) {
-          final String eventID = eventEntry.key;
-          if (events[i]['content'][eventID]['m.read'] != null) {
+        for (var eventEntry in events[i].content.entries) {
+          final eventID = eventEntry.key;
+          if (events[i].content[eventID]['m.read'] != null) {
             final Map<String, dynamic> userTimestampMap =
-                events[i]['content'][eventID]['m.read'];
+                events[i].content[eventID]['m.read'];
             for (var userTimestampMapEntry in userTimestampMap.entries) {
               final mxid = userTimestampMapEntry.key;
 
@@ -985,14 +968,14 @@ class Client extends MatrixApi {
             }
           }
         }
-        events[i]['content'] = receiptStateContent;
+        events[i].content = receiptStateContent;
         await _handleEvent(events[i], id, EventUpdateType.accountData);
       }
     }
   }
 
   Future<void> _handleRoomEvents(
-      String chat_id, List<dynamic> events, EventUpdateType type,
+      String chat_id, List<BasicEvent> events, EventUpdateType type,
       {bool sortAtTheEnd = false}) async {
     for (num i = 0; i < events.length; i++) {
       await _handleEvent(events[i], chat_id, type, sortAtTheEnd: sortAtTheEnd);
@@ -1000,70 +983,66 @@ class Client extends MatrixApi {
   }
 
   Future<void> _handleEvent(
-      Map<String, dynamic> event, String roomID, EventUpdateType type,
+      BasicEvent event, String roomID, EventUpdateType type,
       {bool sortAtTheEnd = false}) async {
-    if (event['type'] is String && event['content'] is Map<String, dynamic>) {
-      // The client must ignore any new m.room.encryption event to prevent
-      // man-in-the-middle attacks!
-      final room = getRoomById(roomID);
-      if (room == null ||
-          (event['type'] == EventTypes.Encryption &&
-              room.encrypted &&
-              event['content']['algorithm'] !=
-                  room.getState(EventTypes.Encryption)?.content['algorithm'])) {
-        return;
-      }
+    // The client must ignore any new m.room.encryption event to prevent
+    // man-in-the-middle attacks!
+    final room = getRoomById(roomID);
+    if (room == null ||
+        (event.type == EventTypes.Encryption &&
+            room.encrypted &&
+            event.content['algorithm'] !=
+                room.getState(EventTypes.Encryption)?.content['algorithm'])) {
+      return;
+    }
 
-      // ephemeral events aren't persisted and don't need a sort order - they are
-      // expected to be processed as soon as they come in
-      final sortOrder = type != EventUpdateType.ephemeral
-          ? (sortAtTheEnd ? room.oldSortOrder : room.newSortOrder)
-          : 0.0;
-      var update = EventUpdate(
-        eventType: event['type'],
-        roomID: roomID,
-        type: type,
-        content: event,
-        sortOrder: sortOrder,
-      );
-      if (event['type'] == EventTypes.Encrypted && encryptionEnabled) {
-        update = await update.decrypt(room);
+    // ephemeral events aren't persisted and don't need a sort order - they are
+    // expected to be processed as soon as they come in
+    final sortOrder = type != EventUpdateType.ephemeral
+        ? (sortAtTheEnd ? room.oldSortOrder : room.newSortOrder)
+        : 0.0;
+    var update = EventUpdate(
+      eventType: event.type,
+      roomID: roomID,
+      type: type,
+      event: event,
+      sortOrder: sortOrder,
+    );
+    if (event.type == EventTypes.Encrypted && encryptionEnabled) {
+      update = await update.decrypt(room);
+    }
+    if (event.type == EventTypes.Message &&
+        !room.isDirectChat &&
+        database != null &&
+        room.getState(EventTypes.RoomMember, (event as MatrixEvent).senderId) ==
+            null) {
+      // In order to correctly render room list previews we need to fetch the member from the database
+      final user =
+          await database.getUser(id, (event as MatrixEvent).senderId, room);
+      if (user != null) {
+        room.setState(user);
       }
-      if (event['type'] == EventTypes.Message &&
-          !room.isDirectChat &&
-          database != null &&
-          room.getState(EventTypes.RoomMember, event['sender']) == null) {
-        // In order to correctly render room list previews we need to fetch the member from the database
-        final user = await database.getUser(id, event['sender'], room);
-        if (user != null) {
-          room.setState(user);
-        }
-      }
-      if (type != EventUpdateType.ephemeral && database != null) {
-        await database.storeEventUpdate(id, update);
-      }
-      _updateRoomsByEventUpdate(update);
-      if (encryptionEnabled) {
-        await encryption.handleEventUpdate(update);
-      }
-      onEvent.add(update);
+    }
+    if (type != EventUpdateType.ephemeral && database != null) {
+      await database.storeEventUpdate(id, update);
+    }
+    _updateRoomsByEventUpdate(update);
+    if (encryptionEnabled) {
+      await encryption.handleEventUpdate(update);
+    }
+    onEvent.add(update);
 
-      final rawUnencryptedEvent = update.content;
+    final rawUnencryptedEvent = update.event;
 
-      if (prevBatch != null && type == EventUpdateType.timeline) {
-        if (rawUnencryptedEvent['type'] == EventTypes.CallInvite) {
-          onCallInvite
-              .add(Event.fromJson(rawUnencryptedEvent, room, sortOrder));
-        } else if (rawUnencryptedEvent['type'] == EventTypes.CallHangup) {
-          onCallHangup
-              .add(Event.fromJson(rawUnencryptedEvent, room, sortOrder));
-        } else if (rawUnencryptedEvent['type'] == EventTypes.CallAnswer) {
-          onCallAnswer
-              .add(Event.fromJson(rawUnencryptedEvent, room, sortOrder));
-        } else if (rawUnencryptedEvent['type'] == EventTypes.CallCandidates) {
-          onCallCandidates
-              .add(Event.fromJson(rawUnencryptedEvent, room, sortOrder));
-        }
+    if (prevBatch != null && type == EventUpdateType.timeline) {
+      if (rawUnencryptedEvent.type == EventTypes.CallInvite) {
+        onCallInvite.add(rawUnencryptedEvent);
+      } else if (rawUnencryptedEvent.type == EventTypes.CallHangup) {
+        onCallHangup.add(rawUnencryptedEvent);
+      } else if (rawUnencryptedEvent.type == EventTypes.CallAnswer) {
+        onCallAnswer.add(rawUnencryptedEvent);
+      } else if (rawUnencryptedEvent.type == EventTypes.CallCandidates) {
+        onCallCandidates.add(rawUnencryptedEvent);
       }
     }
   }
@@ -1138,8 +1117,11 @@ class Client extends MatrixApi {
       case EventUpdateType.timeline:
       case EventUpdateType.state:
       case EventUpdateType.inviteState:
-        var stateEvent =
-            Event.fromJson(eventUpdate.content, room, eventUpdate.sortOrder);
+        var stateEvent = Event.fromMatrixEvent(
+          eventUpdate.event as MatrixEvent,
+          room,
+          sortOrder: eventUpdate.sortOrder,
+        );
         var prevState = room.getState(stateEvent.type, stateEvent.stateKey);
         if (prevState != null && prevState.sortOrder > stateEvent.sortOrder) {
           Logs.warning('''
@@ -1149,7 +1131,7 @@ sort order of ${prevState.sortOrder}. This should never happen...''');
           return;
         }
         if (stateEvent.type == EventTypes.Redaction) {
-          final String redacts = eventUpdate.content['redacts'];
+          final String redacts = eventUpdate.event.content['redacts'];
           room.states.states.forEach(
             (String key, Map<String, Event> states) => states.forEach(
               (String key, Event state) {
@@ -1165,11 +1147,11 @@ sort order of ${prevState.sortOrder}. This should never happen...''');
         break;
       case EventUpdateType.accountData:
         room.roomAccountData[eventUpdate.eventType] =
-            BasicRoomEvent.fromJson(eventUpdate.content);
+            eventUpdate.event as BasicRoomEvent;
         break;
       case EventUpdateType.ephemeral:
         room.ephemerals[eventUpdate.eventType] =
-            BasicRoomEvent.fromJson(eventUpdate.content);
+            eventUpdate.event as BasicRoomEvent;
         break;
       case EventUpdateType.history:
         break;

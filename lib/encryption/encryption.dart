@@ -108,18 +108,17 @@ class Encryption {
     if (update.type == EventUpdateType.ephemeral) {
       return;
     }
+    final event = update.event as MatrixEvent;
     if (update.eventType.startsWith('m.key.verification.') ||
         (update.eventType == 'm.room.message' &&
-            (update.content['content']['msgtype'] is String) &&
-            update.content['content']['msgtype']
-                .startsWith('m.key.verification.'))) {
+            (event.content['msgtype'] is String) &&
+            event.content['msgtype'].startsWith('m.key.verification.'))) {
       // "just" key verification, no need to do this in sync
       unawaited(
           runInRoot(() => keyVerificationManager.handleEventUpdate(update)));
     }
-    if (update.content['sender'] == client.userID &&
-        (!update.content.containsKey('unsigned') ||
-            !update.content['unsigned'].containsKey('transaction_id'))) {
+    if (event.senderId == client.userID &&
+        (event.unsigned?.containsKey('transaction_id') ?? false)) {
       // maybe we need to re-try SSSS secrets
       unawaited(runInRoot(() => ssss.periodicallyRequestMissingCache()));
     }
@@ -242,7 +241,7 @@ class Encryption {
         client.id,
         EventUpdate(
           eventType: event.type,
-          content: event.toJson(),
+          event: event,
           roomID: event.roomId,
           type: updateType,
           sortOrder: event.sortOrder,

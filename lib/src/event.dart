@@ -318,11 +318,12 @@ class Event extends MatrixEvent {
           roomID: room.id,
           type: EventUpdateType.timeline,
           eventType: type,
-          content: {
-            'event_id': eventId,
-            'status': -2,
-            'content': {'body': 'Removed...'}
-          },
+          event: Event(
+            status: -1,
+            eventId: eventId,
+            content: {'body': 'Removed...'},
+            room: room,
+          ),
           sortOrder: sortOrder));
       return true;
     }
