@@ -49,9 +49,8 @@ void main() {
 
     test('setupClient', () async {
       client = await getClient();
-      otherClient.database = client.database;
       await otherClient.checkHomeserver('https://fakeServer.notExisting');
-      otherClient.connect(
+      otherClient.init(
         newToken: 'abc',
         newUserID: '@othertest:fakeServer.notExisting',
         newHomeserver: otherClient.homeserver,

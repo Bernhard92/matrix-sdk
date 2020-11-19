@@ -46,7 +46,7 @@ class Client extends MatrixApi {
   int _id;
   int get id => _id;
 
-  Database database;
+  final Database database;
 
   bool enableE2eeRecovery;
 
@@ -85,6 +85,9 @@ class Client extends MatrixApi {
   ///     - *some* m.room.member events, where needed
   /// [roomPreviewLastEvents]: The event types that should be used to calculate the last event
   ///     in a room for the room list.
+  ///
+  /// If you set a [database] then the app calls [init()]. Set [autoinit] to
+  /// false if you don't want that.
   Client(
     this.clientName, {
     this.database,
@@ -95,6 +98,7 @@ class Client extends MatrixApi {
     this.roomPreviewLastEvents,
     this.pinUnreadRooms = false,
     this.sendMessageTimeoutSeconds = 60,
+    bool autoinit = true,
     @deprecated bool debug,
   }) {
     verificationMethods ??= <KeyVerificationMethod>{};
@@ -115,6 +119,11 @@ class Client extends MatrixApi {
       EventTypes.Sticker,
     ]);
     this.httpClient = httpClient ?? http.Client();
+    if (database != null && autoinit) {
+      init();
+    } else {
+      onLoginStateChanged.add(LoginState.loggedOut);
+    }
   }
 
   /// The required name for this client.
@@ -324,7 +333,7 @@ class Client extends MatrixApi {
         response.userId == null) {
       throw 'Registered but token, device ID or user ID is null.';
     }
-    await connect(
+    await init(
         newToken: response.accessToken,
         newUserID: response.userId,
         newHomeserver: homeserver,
@@ -369,7 +378,7 @@ class Client extends MatrixApi {
         loginResp.userId == null) {
       throw Exception('Registered but token, device ID or user ID is null.');
     }
-    await connect(
+    await init(
       newToken: loginResp.accessToken,
       newUserID: loginResp.userId,
       newHomeserver: homeserver,
@@ -587,38 +596,7 @@ class Client extends MatrixApi {
   /// an error?
   int syncErrorTimeoutSec = 3;
 
-  /// Sets the user credentials and starts the synchronisation.
-  ///
-  /// Before you can connect you need at least an [accessToken], a [homeserver],
-  /// a [userID], a [deviceID], and a [deviceName].
-  ///
-  /// You get this informations
-  /// by logging in to your Matrix account, using the [login API](https://matrix.org/docs/spec/client_server/r0.4.0.html#post-matrix-client-r0-login).
-  ///
-  /// To log in you can use [jsonRequest()] after you have set the [homeserver]
-  /// to a valid url. For example:
-  ///
-  /// ```
-  /// final resp = await matrix
-  ///          .jsonRequest(type: RequestType.POST, action: "/client/r0/login", data: {
-  ///        "type": "m.login.password",
-  ///        "user": "test",
-  ///        "password": "1234",
-  ///        "initial_device_display_name": "Matrix Client"
-  ///      });
-  /// ```
-  ///
-  /// Returns:
-  ///
-  /// ```
-  /// {
-  ///  "user_id": "@cheeky_monkey:matrix.org",
-  ///  "access_token": "abc123",
-  ///  "device_id": "GHTYAJCE"
-  /// }
-  /// ```
-  ///
-  /// Sends [LoginState.logged] to [onLoginStateChanged].
+  @Deprecated('Use init() instead')
   void connect({
     String newToken,
     Uri newHomeserver,
@@ -627,78 +605,123 @@ class Client extends MatrixApi {
     String newDeviceID,
     String newPrevBatch,
     String newOlmAccount,
+  }) =>
+      init(
+        newToken: newToken,
+        newHomeserver: newHomeserver,
+        newUserID: newUserID,
+        newDeviceName: newDeviceName,
+        newDeviceID: newDeviceID,
+        newPrevBatch: newPrevBatch,
+        newOlmAccount: newOlmAccount,
+      );
+
+  bool _initLock = false;
+
+  /// Sets the user credentials and starts the synchronisation.
+  ///
+  /// Usually you don't need to call this method by yourself because [login()], [register()]
+  /// and even the constructor calls it.
+  ///
+  /// Before you can connect you need at least an [accessToken], a [homeserver],
+  /// a [userID], a [deviceID], and a [deviceName].
+  ///
+  /// Sends [LoginState.logged] to [onLoginStateChanged].
+  void init({
+    String newToken,
+    Uri newHomeserver,
+    String newUserID,
+    String newDeviceName,
+    String newDeviceID,
+    String newPrevBatch,
+    String newOlmAccount,
   }) async {
-    String olmAccount;
-    if (database != null) {
-      final account = await database.getClient(clientName);
-      if (account != null) {
-        _id = account.clientId;
-        homeserver = Uri.parse(account.homeserverUrl);
-        accessToken = account.token;
-        _userID = account.userId;
-        _deviceID = account.deviceId;
-        _deviceName = account.deviceName;
-        prevBatch = account.prevBatch;
-        olmAccount = account.olmAccount;
+    if (_initLock) throw Exception('[init()] has been called multiple times!');
+    _initLock = true;
+    try {
+      Logs.info('Initialize client $clientName');
+      if (isLogged()) {
+        throw Exception('User is already logged in! Call [logout()] first!');
       }
-    }
-    accessToken = newToken ?? accessToken;
-    homeserver = newHomeserver ?? homeserver;
-    _userID = newUserID ?? _userID;
-    _deviceID = newDeviceID ?? _deviceID;
-    _deviceName = newDeviceName ?? _deviceName;
-    prevBatch = newPrevBatch ?? prevBatch;
-    olmAccount = newOlmAccount ?? olmAccount;
+      String olmAccount;
+      if (database != null) {
+        final account = await database.getClient(clientName);
+        if (account != null) {
+          _id = account.clientId;
+          homeserver = Uri.parse(account.homeserverUrl);
+          accessToken = account.token;
+          _userID = account.userId;
+          _deviceID = account.deviceId;
+          _deviceName = account.deviceName;
+          prevBatch = account.prevBatch;
+          olmAccount = account.olmAccount;
+        }
+      }
+      accessToken = newToken ?? accessToken;
+      homeserver = newHomeserver ?? homeserver;
+      _userID = newUserID ?? _userID;
+      _deviceID = newDeviceID ?? _deviceID;
+      _deviceName = newDeviceName ?? _deviceName;
+      prevBatch = newPrevBatch ?? prevBatch;
+      olmAccount = newOlmAccount ?? olmAccount;
 
-    if (accessToken == null || homeserver == null || _userID == null) {
-      // we aren't logged in
+      if (accessToken == null || homeserver == null || _userID == null) {
+        // we aren't logged in
+        encryption?.dispose();
+        encryption = null;
+        onLoginStateChanged.add(LoginState.loggedOut);
+        Logs.info('User is not logged in.');
+        _initLock = false;
+        return;
+      }
+
       encryption?.dispose();
-      encryption = null;
-      onLoginStateChanged.add(LoginState.loggedOut);
-      return;
-    }
+      encryption =
+          Encryption(client: this, enableE2eeRecovery: enableE2eeRecovery);
+      await encryption.init(olmAccount);
 
-    encryption?.dispose();
-    encryption =
-        Encryption(client: this, enableE2eeRecovery: enableE2eeRecovery);
-    await encryption.init(olmAccount);
-
-    if (database != null) {
-      if (id != null) {
-        await database.updateClient(
-          homeserver.toString(),
-          accessToken,
-          _userID,
-          _deviceID,
-          _deviceName,
-          prevBatch,
-          encryption?.pickledOlmAccount,
-          id,
-        );
-      } else {
-        _id = await database.insertClient(
-          clientName,
-          homeserver.toString(),
-          accessToken,
-          _userID,
-          _deviceID,
-          _deviceName,
-          prevBatch,
-          encryption?.pickledOlmAccount,
-        );
+      if (database != null) {
+        if (id != null) {
+          await database.updateClient(
+            homeserver.toString(),
+            accessToken,
+            _userID,
+            _deviceID,
+            _deviceName,
+            prevBatch,
+            encryption?.pickledOlmAccount,
+            id,
+          );
+        } else {
+          _id = await database.insertClient(
+            clientName,
+            homeserver.toString(),
+            accessToken,
+            _userID,
+            _deviceID,
+            _deviceName,
+            prevBatch,
+            encryption?.pickledOlmAccount,
+          );
+        }
+        _userDeviceKeys = await database.getUserDeviceKeys(this);
+        _rooms = await database.getRoomList(this, onlyLeft: false);
+        _sortRooms();
+        accountData = await database.getAccountData(id);
+        presences.clear();
       }
-      _userDeviceKeys = await database.getUserDeviceKeys(this);
-      _rooms = await database.getRoomList(this, onlyLeft: false);
-      _sortRooms();
-      accountData = await database.getAccountData(id);
-      presences.clear();
+
+      onLoginStateChanged.add(LoginState.logged);
+      Logs.success(
+        'Successfully connected as ${userID.localpart} with ${homeserver.toString()}',
+      );
+    } catch (e, s) {
+      Logs.error('Initialization failed: ${e.toString()}', s);
+      onLoginStateChanged.addError(e, s);
+      rethrow;
+    } finally {
+      _initLock = false;
     }
-
-    onLoginStateChanged.add(LoginState.logged);
-    Logs.success(
-      'Successfully connected as ${userID.localpart} with ${homeserver.toString()}',
-    );
-
     // Always do a _sync after login, even if backgroundSync is set to off
     return _sync();
   }
@@ -1629,7 +1652,7 @@ sort order of ${prevState.sortOrder}. This should never happen...''');
 
   /// Stops the synchronization and closes the database. After this
   /// you can safely make this Client instance null.
-  Future<void> dispose({bool closeDatabase = false}) async {
+  Future<void> dispose({bool closeDatabase = true}) async {
     _disposed = true;
     try {
       await _currentTransaction;
@@ -1643,7 +1666,6 @@ sort order of ${prevState.sortOrder}. This should never happen...''');
     } catch (error, stacktrace) {
       Logs.warning('Failed to close database: ' + error.toString(), stacktrace);
     }
-    database = null;
     return;
   }
 }

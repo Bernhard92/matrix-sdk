@@ -22,16 +22,22 @@ void test() async {
     Logs.success('[LibOlm] Enabled');
 
     Logs.success('++++ Login Alice at ++++');
-    testClientA = Client('TestClientA');
-    testClientA.database = getDatabase();
+    testClientA = Client(
+      'TestClientA',
+      database: getDatabase(),
+      autoinit: false,
+    );
     await testClientA.checkHomeserver(TestUser.homeserver);
     await testClientA.login(
         user: TestUser.username, password: TestUser.password);
     assert(testClientA.encryptionEnabled);
 
     Logs.success('++++ Login Bob ++++');
-    testClientB = Client('TestClientB');
-    testClientB.database = getDatabase();
+    testClientB = Client(
+      'TestClientB',
+      database: getDatabase(),
+      autoinit: false,
+    );
     await testClientB.checkHomeserver(TestUser.homeserver);
     await testClientB.login(
         user: TestUser.username2, password: TestUser.password);

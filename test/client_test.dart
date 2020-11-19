@@ -91,7 +91,7 @@ void main() {
       var firstSyncFuture = matrix.onFirstSync.stream.first;
       var syncFuture = matrix.onSync.stream.first;
 
-      matrix.connect(
+      matrix.init(
         newToken: 'abcd',
         newUserID: '@test:fakeServer.notExisting',
         newHomeserver: matrix.homeserver,
@@ -379,10 +379,11 @@ void main() {
           });
     });
     test('Test the fake store api', () async {
-      var client1 = Client('testclient', httpClient: FakeMatrixApi());
-      client1.database = getDatabase();
-
-      client1.connect(
+      final database = getDatabase();
+      var client1 =
+          Client('testclient', httpClient: FakeMatrixApi(), database: database);
+      await Future.delayed(Duration(milliseconds: 100));
+      client1.init(
         newToken: 'abc123',
         newUserID: '@test:fakeServer.notExisting',
         newHomeserver: Uri.parse('https://fakeServer.notExisting'),
@@ -391,15 +392,13 @@ void main() {
         newOlmAccount: pickledOlmAccount,
       );
 
-      await Future.delayed(Duration(milliseconds: 50));
+      await Future.delayed(Duration(milliseconds: 100));
 
       expect(client1.isLogged(), true);
       expect(client1.rooms.length, 2);
 
-      var client2 = Client('testclient', httpClient: FakeMatrixApi());
-      client2.database = client1.database;
-
-      client2.connect();
+      var client2 =
+          Client('testclient', httpClient: FakeMatrixApi(), database: database);
       await Future.delayed(Duration(milliseconds: 100));
 
       expect(client2.isLogged(), true);
