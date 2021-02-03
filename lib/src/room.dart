@@ -28,6 +28,7 @@ import 'database/database.dart' show DbRoom;
 import 'event.dart';
 import 'timeline.dart';
 import 'user.dart';
+import 'utils/commands.dart';
 import 'utils/event_update.dart';
 import 'utils/markdown.dart';
 import 'utils/marked_unread.dart';
@@ -107,10 +108,17 @@ class Room {
   /// Flag if the room is partial, meaning not all state events have been loaded yet
   bool partial = true;
 
+  /// Command handling / parsing
+  Commands commands;
+
   /// Post-loads the room.
   /// This load all the missing state events for the room from the database
   /// If the room has already been loaded, this does nothing.
   Future<void> postLoad() async {
+    if (commands == null) {
+      commands = Commands(room: this);
+      commands.registerRoomCommands();
+    }
     if (!partial || client.database == null) {
       return;
     }
@@ -578,15 +586,12 @@ class Room {
       Event inReplyTo,
       String editEventId,
       bool parseMarkdown = true,
-      Map<String, Map<String, String>> emotePacks}) {
+      Map<String, Map<String, String>> emotePacks,
+      String msgtype = 'm.text'}) {
     final event = <String, dynamic>{
-      'msgtype': 'm.text',
+      'msgtype': msgtype,
       'body': message,
     };
-    if (message.startsWith('/me ')) {
-      event['msgtype'] = 'm.emote';
-      event['body'] = message.substring(4);
-    }
     if (parseMarkdown) {
       final html = markdown(event['body'], emotePacks ?? this.emotePacks);
       // if the decoded html is the same as the body, there is no need in sending a formatted message
